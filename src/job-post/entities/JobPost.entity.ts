@@ -3,8 +3,12 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn
+  UpdateDateColumn,
+  OneToMany,
+  ManyToOne,
 } from 'typeorm';
+import { JobRequest } from './JobRequest.entity';
+import { User } from 'src/auth/entity/User.entity';
 
 @Entity()
 export class JobPost {
@@ -16,6 +20,12 @@ export class JobPost {
 
   @Column('text')
   description: string;
+
+  @OneToMany(() => JobRequest, (jobrequest) => jobrequest.jobPost)
+  jobrequest: JobRequest[];
+
+  @ManyToOne(() => User, (user) => user.jobpost)
+  user: User;
 
   @CreateDateColumn()
   createdAt: Date;
