@@ -11,6 +11,7 @@ import {
   UseGuards,
   UseInterceptors,
   Query,
+  StreamableFile,
 } from '@nestjs/common';
 import { JobPostService } from './job-post.service';
 import { CreateJobPostDto } from './Dtos/Create-JobPost.dto';
@@ -22,6 +23,12 @@ import { AuthGuard } from 'src/auth/Guards/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { v4 as uuid } from 'uuid';
+import { SearchFilterDto } from './Dtos/SearchFilterDto.dto';
+import { PaginationDto } from './Dtos/PaginationDto.dto';
+import { createReadStream } from 'fs';
+import { join } from 'path';
+import { Res } from '@nestjs/common';
+import { Response } from 'express';
 
 @Controller('job-post')
 export class JobPostController {
@@ -38,19 +45,23 @@ export class JobPostController {
 
   @UseInterceptors(ClassSerializerInterceptor)
   @Get('')
-  FindAll() {
-    return this.jobPostService.FindAll();
+  FindAll(@Query() paginationDto: PaginationDto) {
+    return this.jobPostService.FindAll(paginationDto);
+  }
+
+  @UseInterceptors(ClassSerializerInterceptor)
+  @Get('all-titulo')
+  FindAlltile(
+    @Query() searchFilterDto: SearchFilterDto,
+    @Query() paginationDto: PaginationDto,
+  ) {
+    return this.jobPostService.FindAllByTitle(searchFilterDto, paginationDto);
   }
 
   @UseInterceptors(ClassSerializerInterceptor)
   @Get('/:id')
   FindById(@Param('id') id: number) {
     return this.jobPostService.FindById(id);
-  }
-
-  @Get('')
-  Search(@Query('title') title: string) {
-    return this.jobPostService.Search(title);
   }
 
   @UseGuards(AuthGuard)
@@ -103,6 +114,20 @@ export class JobPostController {
       user,
       file,
     );
+  }
+
+  @Get('upload/:imageName')
+  StreamFileCV(
+    @Res({ passthrough: true }) res: Response,
+    @Param('imageName') imageName: string,
+  ) {
+    const file = createReadStream(
+      join(process.cwd(), '../files/cvUser', imageName),
+    );
+    res.set({
+      'Content-Type': 'text/plain',
+    });
+    return new StreamableFile(file);
   }
 
   @UseGuards(AuthGuard)

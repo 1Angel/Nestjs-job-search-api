@@ -7,11 +7,13 @@ import {
 import { CreateJobPostDto } from './Dtos/Create-JobPost.dto';
 import { JobPost } from './entities/JobPost.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { ILike, Like, Repository } from 'typeorm';
 import { UpdateJobPostDto } from './Dtos/UpdateJobPostDto.dto';
 import { JobRequest } from './entities/JobRequest.entity';
 import { CreateJobRequestDto } from './Dtos/Create-jobRequest.Dto';
 import { User } from 'src/auth/entity/User.entity';
+import { SearchFilterDto } from './Dtos/SearchFilterDto.dto';
+import { PaginationDto } from './Dtos/PaginationDto.dto';
 
 @Injectable()
 export class JobPostService {
@@ -33,8 +35,12 @@ export class JobPostService {
     return this.JobPostRepository.save(post);
   }
 
-  FindAll() {
+  FindAll(paginationDto: PaginationDto) {
+    const { limit = 10, offset = 0 } = paginationDto;
+
     const job = this.JobPostRepository.find({
+      take: limit,
+      skip: offset,
       order: {
         id: 'ASC',
       },
@@ -46,15 +52,30 @@ export class JobPostService {
     return job;
   }
 
-  async Search(title: string) {
-    const posts = await this.JobPostRepository.findAndCount({
-      where:[
+  FindAllByTitle(
+    searchFilterDto: SearchFilterDto,
+    paginationDto: PaginationDto,
+  ) {
+    const { title } = searchFilterDto;
+    const { limit = 10, offset = 0 } = paginationDto;
+
+    const job = this.JobPostRepository.find({
+      take: limit,
+      skip: offset,
+      order: {
+        id: 'ASC',
+      },
+      relations: { user: true },
+      where: [
         {
           title: Like(`%${title}%`),
-        }
-      ]
-    })
-    return posts;
+        },
+      ],
+    });
+    if (!job) {
+      throw new NotFoundException('not job found');
+    }
+    return job;
   }
 
   async FindById(id: number) {
